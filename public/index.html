@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
+    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
+
+    <script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <script type="text/javascript" src="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <style>
+        .img {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 90%;
+        }
+
+        .left{
+            float: left;
+            width: 33%;
+            text-align: center;
+            margin-top: 0px;
+        }
+
+
+        .center{
+            margin-left: auto;
+            margin-right: auto;
+            width: 33%;
+        }
+
+
+        .right{
+            float: right;
+            width: 33%;
+            margin-top: -20px;
+        }
+
+        .uploader{
+            width: 200px;
+            height: 250px;
+            background: white;
+            text-align: center;
+            border: solid wheat;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            background: no-repeat;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div style="text-align: center;">
+    <div id="div1" class="left">
+        <div class="uploader" id="uploadTrigger"><span style="text-align: center;display: block;">+</span></div>
+    </div>
+
+    <div id="div2" class="center">
+        <button id="btn">生成</button>
+    </div>
+
+    <div id="div3"  class="right">
+        <div class="uploader" id="uploadImg"></div>
+    </div>
+
+    <input type="file" id="uploadInput" onchange="changePic(this)" style="display: none"/>
+</div>
+
+<div style="clear: both;">选择模版：</div>
+
+<div class="your-class" style="margin-top: 2rem;margin-bottom: 1rem;">
+    <div style="text-align: center;"><img class="img" id="p0" src="images/1.jpeg"/></div>
+    <div style="text-align: center;"><img class="img" id="p1" src="images/2.jpeg"/></div>
+    <div style="text-align: center;"><img class="img" id="p2" src="images/3.jpeg"/></div>
+    <div style="text-align: center;"><img class="img" id="p3" src="images/4.jpeg"/></div>
+    <div style="text-align: center;"><img class="img" id="p4" src="images/5.jpeg"/></div>
+    <div style="text-align: center;"><img class="img" id="p5" src="images/6.jpeg"/></div>
+</div>
+
+
+<script>
+    var currentFile;
+    var currentTamplateUrl;
+    $(document).ready(function(){
+        $('.your-class').slick({
+            centerMode: true,
+            slidesToShow: 5
+
+        });
+
+        $('.img').on('click', function(event) {
+            currentTamplateUrl = $(this).attr("src")
+            console.log(currentTamplateUrl)
+        });
+
+    });
+
+    function changePic(obj) {
+        let file = obj.files[0];
+        currentFile = file;
+        let newsrc=getObjectURL(file);
+        $('#uploadTrigger').css("background-image", "url("+newsrc+")");
+    }
+
+
+    //建立一個可存取到該file的url
+    function getObjectURL(file) {
+        let url = null ;
+        // 下面函数执行的效果是一样的，只是需要针对不同的浏览器执行不同的 js 函数而已
+        if (window.createObjectURL!=undefined) { // basic
+            url = window.createObjectURL(file) ;
+        } else if (window.URL!=undefined) { // mozilla(firefox)
+            url = window.URL.createObjectURL(file) ;
+        } else if (window.webkitURL!=undefined) { // webkit or chrome
+            url = window.webkitURL.createObjectURL(file) ;
+        }
+        return url ;
+    }
+
+    function getBase64FromImageUrl(url,callback) {
+        var img = new Image();
+
+        img.setAttribute('crossOrigin', 'anonymous');
+        img.src = url;
+        img.onload = function () {
+            var canvas = document.createElement("canvas");
+            canvas.width =this.width;
+            canvas.height =this.height;
+
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(this, 0, 0);
+
+            var dataURL = canvas.toDataURL("image/png");
+            callback(dataURL);
+            // alert(dataURL.replace(/^data:image\/(png|jpg);base64,/, ""));
+        };
+
+
+        console.log(img)
+    }
+
+    function readAsDataURL(file,callback){
+        if(typeof FileReader=='undifined') {
+            console.log("抱歉，你的浏览器不支持 FileReader")
+            alert("抱歉，你的浏览器不支持 FileReader");
+            return false;
+        }
+        if(!/image\/\w+/.test(file.type)){
+            alert("请确保文件为图像文件");
+            return false;
+        }
+        var reader=new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload=function(e){
+            console.log(this.result)
+            callback(this.result)
+        }
+    }
+
+    $("#uploadTrigger").on('click',function () {
+        $('#uploadInput').click();
+    })
+
+    $("#btn").on('click',function () {
+        if(currentFile){
+            getBase64FromImageUrl(currentTamplateUrl,function (re) {
+                readAsDataURL(currentFile,function (result) {
+                    axios({
+                        method: 'post',
+                        url: 'http://localhost:3000/make/photo',
+                        data: {
+                            avatar: result,
+                            template: re
+                        }
+                    }).then((r)=>{
+                        console.log(r)
+                        $('#uploadImg').css("background-image", "url(data:image/png;base64,"+r.data+")");
+                    });
+                })
+            });
+        }
+    })
+</script>
+
+
+</body>
+</html>
